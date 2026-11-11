@@ -52,6 +52,12 @@ button:disabled{opacity:.5;cursor:default}
 .estado{margin:10px 0 0;font-size:15px}
 .estado.ok{color:var(--ok)}
 .estado.mal{color:var(--warn)}
+.docs{border:1px solid var(--line);border-radius:10px;padding:12px;margin:0 0 12px;background:var(--acc2)}
+.docs p{margin:0 0 8px}
+.botones{display:flex;flex-wrap:wrap;gap:10px}
+a.boton{display:inline-block;font:inherit;padding:10px 16px;border-radius:8px;border:1px solid var(--acc);background:var(--acc);color:var(--card);text-decoration:none}
+a.boton.sec{background:transparent;color:var(--acc)}
+#visor iframe{width:100%;height:80vh;border:1px solid var(--line);border-radius:8px;margin-top:10px;background:#fff}
 .final{border:2px solid var(--acc);border-radius:10px;padding:14px;margin:14px 0 0;background:var(--acc2)}
 .final h3{margin:0 0 8px;color:var(--acc)}
 .final .botones{display:flex;flex-wrap:wrap;gap:10px}
@@ -135,6 +141,7 @@ a{color:var(--acc)}
 <div id="planilla"></div>
 
 <section class="card">
+  <p class="nota">Versión de la planilla: 11 de noviembre de 2026, 5:05 p. m.</p>
   <p class="nota">Referencias. Escobar-Pérez, J. y Cuervo-Martínez, Á. (2008). Validez de contenido y juicio de expertos: una aproximación a su utilización. Avances en Medición, 6, 27-36. Icfes. (2019). Marco de referencia de la prueba de matemáticas Saber 11.°. Dirección de Evaluación, Icfes.</p>
 </section>
 </main>
@@ -159,7 +166,7 @@ const JUECES = [
 const COMP = {FE: "Formulación y ejecución", IR: "Interpretación y representación", AR: "Argumentación"};
 const PRUEBAS = {
   decimo: {
-    titulo: "Preprueba de décimo: razones trigonométricas", anexo: "Anexo A",
+    titulo: "Preprueba de décimo: razones trigonométricas", anexo: "Anexo A", pdf: "Anexo_A_Preprueba_decimo_trigonometria_IETAL.pdf",
     temas: ["Elementos del triángulo rectángulo; seno y coseno de un ángulo agudo",
             "Tangente y elección de la razón trigonométrica según los lados conocidos",
             "Aplicaciones a alturas y distancias; variación del seno, el coseno y la tangente con el ángulo"],
@@ -179,7 +186,7 @@ const PRUEBAS = {
     ]
   },
   once: {
-    titulo: "Preprueba de once: reglas de derivación", anexo: "Anexo B",
+    titulo: "Preprueba de once: reglas de derivación", anexo: "Anexo B", pdf: "Anexo_B_Preprueba_once_derivadas_IETAL.pdf",
     temas: ["Derivada de la constante, de la potencia y de una constante por una función; derivada de la suma y la resta",
             "Reglas del producto y del cociente",
             "Regla de la cadena y ejercicios básicos que combinan las reglas"],
@@ -199,6 +206,7 @@ const PRUEBAS = {
     ]
   }
 };
+const MATRIZ = "Anexo_C_Matriz_de_items_IETAL.pdf";
 const CRITERIOS = [["cl", "Claridad"], ["co", "Coherencia"], ["re", "Relevancia"]];
 const CONCEPTOS = [["Aplicable", "Aplicable: se puede usar como está."],
                    ["Aplicable con ajustes", "Aplicable con ajustes: se usa después de hacer los cambios anotados."],
@@ -240,7 +248,12 @@ function escala(nombre, valor){
 function pintar(){
   const P = PRUEBAS[actual], E = estado.pruebas[actual];
   let h = '<section class="card"><h2>' + esc(P.titulo) + '</h2>';
-  h += '<p class="nota">El texto completo de cada pregunta y su clave están en el ' + P.anexo + '.</p>';
+  h += '<div class="docs"><p><strong>Antes de calificar, abra la prueba.</strong> El texto completo de cada pregunta, sus pasos y su clave están en el ' + P.anexo + '. La matriz del Anexo C dice qué mide cada pregunta.</p><div class="botones">';
+  h += '<a class="boton" href="' + P.pdf + '" target="_blank" rel="noopener">Ver la prueba (' + P.anexo + ')</a>';
+  h += '<a class="boton sec" href="' + P.pdf + '" download>Descargar la prueba</a>';
+  h += '<a class="boton" href="' + MATRIZ + '" target="_blank" rel="noopener">Ver la matriz (Anexo C)</a>';
+  h += '<a class="boton sec" href="' + MATRIZ + '" download>Descargar la matriz</a>';
+  h += '<button type="button" class="sec" id="verAqui">Mostrar la prueba dentro de esta página</button></div><div id="visor"></div></div>';
   P.preguntas.forEach((q, i) => {
     if(i % 4 === 0) h += '<h3>Tema ' + (i / 4 + 1) + ': ' + esc(P.temas[i / 4]) + '</h3>';
     const e = E.preguntas[i];
@@ -286,11 +299,18 @@ function conectar(){
   E.preguntas.forEach((_, i) => $("obs_" + i).addEventListener("input", ev => { E.preguntas[i].obs = ev.target.value; guardar(); avisos(); }));
   E.temas.forEach((_, j) => $("falta_" + j).addEventListener("input", ev => { E.temas[j].falta = ev.target.value; guardar(); avisos(); }));
   $("generales").addEventListener("input", ev => { E.generales = ev.target.value; guardar(); });
-  $("firma").addEventListener("input", ev => { E.firma = ev.target.value; guardar(); });
+  $("firma").addEventListener("input", ev => { E.firma = ev.target.value; guardar(); finalBloque(); });
   $("enviar").addEventListener("click", enviar);
+  $("verAqui").addEventListener("click", () => {
+    const v = $("visor"), P = PRUEBAS[actual];
+    if(v.innerHTML){ v.innerHTML = ""; $("verAqui").textContent = "Mostrar la prueba dentro de esta página"; return; }
+    v.innerHTML = '<iframe src="' + P.pdf + '" title="' + esc(P.titulo) + '"></iframe><p class="nota">Si la prueba no se ve aquí, como pasa en algunos celulares, use "Ver la prueba".</p>';
+    $("verAqui").textContent = "Ocultar la prueba";
+  });
 }
 
 function avisos(){
+  finalBloque();
   const E = estado.pruebas[actual];
   E.preguntas.forEach((p, i) => {
     const req = [p.cl, p.co, p.re].some(v => v === 1 || v === 2);
@@ -386,18 +406,26 @@ function datosJuez(){
   if(!estado.fecha){ estado.fecha = new Date().toLocaleDateString("es-CO"); $("fecha").value = estado.fecha; guardar(); }
 }
 
+function completa(k){
+  const E = estado.pruebas[k];
+  if(!E.concepto || !E.firma.trim()) return false;
+  if(E.preguntas.some(p => !p.cl || !p.co || !p.re || (Math.min(p.cl, p.co, p.re) <= 2 && !p.obs.trim()))) return false;
+  if(E.temas.some(t => !t.suf || (t.suf <= 3 && !t.falta.trim()))) return false;
+  return true;
+}
 function finalBloque(){
   const caja = $("final"); if(!caja) return;
-  const E = estado.pruebas[actual], otra = actual === "decimo" ? "once" : "decimo", O = estado.pruebas[otra];
-  if(!E.enviado){ caja.innerHTML = ""; return; }
+  const otra = actual === "decimo" ? "once" : "decimo", E = estado.pruebas[actual], O = estado.pruebas[otra];
   const nombre = k => k === "decimo" ? "planilla 1 de décimo" : "planilla 2 de once";
-  let h = '<div class="final"><h3>Evaluación enviada. ¿Qué desea hacer ahora?</h3>';
-  h += '<p>' + (O.enviado ? "Ya envió las dos planillas. Puede descargar el PDF de cada una." : "Le falta la " + nombre(otra) + ".") + '</p><div class="botones">';
-  h += '<button type="button" id="pdfActual">Descargar PDF de la ' + nombre(actual) + '</button>';
-  if(O.enviado) h += '<button type="button" id="pdfOtra">Descargar PDF de la ' + nombre(otra) + '</button>';
+  const lista = k => estado.pruebas[k].enviado || completa(k);
+  let h = '<div class="final"><h3>' + (E.enviado ? "Evaluación enviada. ¿Qué desea hacer ahora?" : (completa(actual) ? "Planilla completa. Recuerde pulsar Enviar." : "Al terminar")) + '</h3>';
+  if(!E.enviado && !completa(actual)) h += '<p>Cuando califique todas las preguntas y los temas, marque el concepto general y escriba su firma, aquí aparece el botón para descargar el PDF de esta planilla.</p>';
+  h += '<p>' + (O.enviado ? "La " + nombre(otra) + " ya fue enviada." : "Falta enviar la " + nombre(otra) + ".") + '</p><div class="botones">';
+  if(lista(actual)) h += '<button type="button" id="pdfActual">Descargar PDF de la ' + nombre(actual) + '</button>';
+  if(lista(otra)) h += '<button type="button" id="pdfOtra">Descargar PDF de la ' + nombre(otra) + '</button>';
   h += '<button type="button" class="sec" id="irOtra">' + (O.enviado ? "Revisar la " : "Pasar a la ") + nombre(otra) + '</button></div></div>';
   caja.innerHTML = h;
-  $("pdfActual").addEventListener("click", () => pdf(actual));
+  if($("pdfActual")) $("pdfActual").addEventListener("click", () => pdf(actual));
   if($("pdfOtra")) $("pdfOtra").addEventListener("click", () => pdf(otra));
   $("irOtra").addEventListener("click", () => cambiar(otra));
 }
