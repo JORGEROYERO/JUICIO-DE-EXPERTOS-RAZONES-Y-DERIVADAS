@@ -28,9 +28,13 @@ button:disabled{opacity:.5;cursor:default}
 .tabla th,.tabla td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left}
 .tabla th{background:var(--acc2)}
 .scroll{overflow-x:auto}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
-.tabs button{background:transparent;color:var(--acc)}
+.selector{position:sticky;top:0;z-index:5;background:var(--card);border:2px solid var(--acc);border-radius:10px;padding:12px 14px;margin:14px 0;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+.selector p{margin:0 0 8px;font-weight:bold;color:var(--acc)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--acc);flex:1 1 220px;text-align:left}
 .tabs button.on{background:var(--acc);color:var(--card)}
+.tabs .est{display:block;font-size:13px;opacity:.85}
+@media (max-width:640px){.selector{padding:8px}.selector p{font-size:13px;margin:0 0 6px}.tabs button{padding:6px 10px;font-size:14px;flex-basis:100%}}
 .preg{border:1px solid var(--line);border-radius:10px;padding:12px;margin:12px 0;background:var(--card)}
 .preg.falta{border-color:var(--warn)}
 .pnum{display:inline-block;min-width:34px;height:34px;line-height:34px;text-align:center;border-radius:50%;background:var(--acc);color:var(--card);font-weight:bold;margin-right:8px}
@@ -85,7 +89,7 @@ a{color:var(--acc)}
     <li>Si en algún criterio marca 1 o 2, escriba en observaciones qué cambiaría de la pregunta. Con 3 o 4 la observación es opcional.</li>
     <li>En las preguntas por pasos se califica la pregunta completa, con todos sus pasos.</li>
     <li>Califique la suficiencia de cada tema, mirando sus cuatro preguntas juntas. Si marca 1, 2 o 3, diga qué contenido del tema falta medir.</li>
-    <li>Marque el concepto general, escriba su nombre como firma y pulse "Enviar planilla". Haga lo mismo con la otra prueba.</li>
+    <li>Marque el concepto general, escriba su nombre como firma y pulse "Enviar planilla". Después pase a la otra prueba con los botones "Planilla 1" y "Planilla 2" que están más abajo y quedan fijos arriba de la pantalla, o con el botón que aparece al final de cada planilla.</li>
     <li>Plazo: jueves 12 de noviembre de 2026.</li>
   </ol>
   <p class="nota">Lo que marca se guarda en este navegador mientras llena la planilla. Si cierra la página y vuelve a abrirla en el mismo equipo, lo encuentra como lo dejó. Si envía otra vez la misma prueba, la hoja reemplaza su envío anterior.</p>
@@ -102,9 +106,12 @@ a{color:var(--acc)}
   </div>
 </section>
 
-<div class="tabs" role="tablist">
-  <button type="button" id="tab_decimo" class="on" data-p="decimo">Décimo: razones trigonométricas</button>
-  <button type="button" id="tab_once" data-p="once">Once: reglas de derivación</button>
+<div class="selector" id="selector">
+  <p>Hay dos planillas. Pulse una para cambiar de prueba:</p>
+  <div class="tabs" role="tablist">
+    <button type="button" id="tab_decimo" class="on" data-p="decimo">Planilla 1. Décimo: razones trigonométricas<span class="est" id="est_decimo"></span></button>
+    <button type="button" id="tab_once" data-p="once">Planilla 2. Once: reglas de derivación<span class="est" id="est_once"></span></button>
+  </div>
 </div>
 <div id="planilla"></div>
 
@@ -236,9 +243,12 @@ function pintar(){
   });
   h += '</div><label class="campo" for="generales">Observaciones generales</label><textarea id="generales">' + esc(E.generales) + '</textarea>';
   h += '<label class="campo" for="firma">Firma: escriba su nombre completo</label><input type="text" id="firma" value="' + esc(E.firma) + '">';
+  const otra = actual === "decimo" ? "once" : "decimo";
   h += '<p><button type="button" id="enviar">Enviar planilla de ' + (actual === "decimo" ? "décimo" : "once") + '</button></p>';
-  h += '<p id="estado" class="estado' + (E.enviado ? " ok" : "") + '">' + (E.enviado ? "Esta planilla ya fue enviada (" + esc(E.enviado) + "). Si corrige algo y la envía otra vez, la hoja reemplaza el envío anterior." : "") + '</p></section>';
+  h += '<p id="estado" class="estado' + (E.enviado ? " ok" : "") + '">' + (E.enviado ? "Esta planilla ya fue enviada (" + esc(E.enviado) + "). Si corrige algo y la envía otra vez, la hoja reemplaza el envío anterior." : "") + '</p>';
+  h += '<p><button type="button" class="sec" id="irOtra">Ir a la planilla ' + (otra === "decimo" ? "1 de décimo" : "2 de once") + '</button></p></section>';
   $("planilla").innerHTML = h;
+  rotulos();
   conectar();
   avisos();
 }
@@ -250,13 +260,14 @@ function conectar(){
     if(r.name.startsWith("concepto_")) E.concepto = r.value;
     else if(m && m[2] === "t") E.temas[+m[3]].suf = +r.value;
     else if(m) E.preguntas[+m[3]][m[4]] = +r.value;
-    guardar(); avisos();
+    guardar(); avisos(); rotulos();
   }));
   E.preguntas.forEach((_, i) => $("obs_" + i).addEventListener("input", ev => { E.preguntas[i].obs = ev.target.value; guardar(); avisos(); }));
   E.temas.forEach((_, j) => $("falta_" + j).addEventListener("input", ev => { E.temas[j].falta = ev.target.value; guardar(); avisos(); }));
   $("generales").addEventListener("input", ev => { E.generales = ev.target.value; guardar(); });
   $("firma").addEventListener("input", ev => { E.firma = ev.target.value; guardar(); });
   $("enviar").addEventListener("click", enviar);
+  $("irOtra").addEventListener("click", () => cambiar(actual === "decimo" ? "once" : "decimo"));
 }
 
 function avisos(){
@@ -328,7 +339,7 @@ async function enviar(){
       try{ const r = await jsonp({asignatura: ASIGNATURA, accion: "verificar", id}); ok = !!(r && r.ok && r.encontrado); }catch(e){}
     }
     if(!ok) throw new Error("la hoja no confirmó el registro");
-    E.enviado = new Date().toLocaleString("es-CO"); guardar();
+    E.enviado = new Date().toLocaleString("es-CO"); guardar(); rotulos();
     st.className = "estado ok";
     st.textContent = "Planilla recibida (" + E.enviado + "). Gracias. " + (estado.pruebas[actual === "decimo" ? "once" : "decimo"].enviado ? "Ya envió las dos planillas." : "Falta la planilla de la otra prueba: use la pestaña de arriba.");
   }catch(err){
@@ -355,11 +366,20 @@ function datosJuez(){
   if(!estado.fecha){ estado.fecha = new Date().toLocaleDateString("es-CO"); $("fecha").value = estado.fecha; guardar(); }
 }
 
-document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
-  actual = b.dataset.p;
-  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+function rotulos(){
+  Object.keys(PRUEBAS).forEach(k => {
+    const E = estado.pruebas[k];
+    const hechas = E.preguntas.filter(p => p.cl && p.co && p.re).length;
+    $("est_" + k).textContent = E.enviado ? "Enviada" : (hechas ? hechas + " de 12 preguntas calificadas, sin enviar" : "Sin empezar");
+  });
+}
+function cambiar(p){
+  actual = p;
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x.dataset.p === p));
   pintar();
-}));
+  $("selector").scrollIntoView({behavior: "smooth", block: "start"});
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => cambiar(b.dataset.p)));
 datosJuez();
 pintar();
 </script>
