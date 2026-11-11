@@ -52,6 +52,23 @@ button:disabled{opacity:.5;cursor:default}
 .estado{margin:10px 0 0;font-size:15px}
 .estado.ok{color:var(--ok)}
 .estado.mal{color:var(--warn)}
+.final{border:2px solid var(--acc);border-radius:10px;padding:14px;margin:14px 0 0;background:var(--acc2)}
+.final h3{margin:0 0 8px;color:var(--acc)}
+.final .botones{display:flex;flex-wrap:wrap;gap:10px}
+#informe{display:none}
+@media print{
+  body{background:#fff;color:#000;font:11pt/1.35 Arial,Helvetica,sans-serif}
+  main{display:none}
+  #informe{display:block}
+  #informe h1{font-size:15pt;margin:0 0 4pt}
+  #informe h2{font-size:12pt;margin:12pt 0 4pt}
+  #informe p{margin:2pt 0}
+  #informe table{width:100%;border-collapse:collapse;font-size:9pt;margin-top:4pt}
+  #informe th,#informe td{border:1px solid #000;padding:3pt 4pt;vertical-align:top;text-align:left}
+  #informe th{background:#e6efe0}
+  #informe tr{page-break-inside:avoid}
+  @page{size:letter;margin:1.5cm}
+}
 .conceptos label{display:block;margin:6px 0;cursor:pointer}
 .nota{font-size:13px;color:var(--mute)}
 a{color:var(--acc)}
@@ -79,6 +96,15 @@ a{color:var(--acc)}
   </div>
 </section>
 
+<div class="selector" id="selector">
+  <p>Hay dos planillas. Pulse una para cambiar de prueba:</p>
+  <div class="tabs" role="tablist">
+    <button type="button" id="tab_decimo" class="on" data-p="decimo">Planilla 1. Décimo: razones trigonométricas<span class="est" id="est_decimo"></span></button>
+    <button type="button" id="tab_once" data-p="once">Planilla 2. Once: reglas de derivación<span class="est" id="est_once"></span></button>
+  </div>
+</div>
+
+
 <section class="card">
   <h2>Qué se evalúa y cómo diligenciar la planilla</h2>
   <p>Hay dos prepruebas, una de grado décimo (razones trigonométricas) y otra de grado once (reglas de derivación). Cada una se presenta en una sola aplicación y tiene 12 preguntas de selección múltiple, con un punto por pregunta. Las preguntas están agrupadas en tres temas de cuatro preguntas: las preguntas 1 a 4 forman el tema 1, las 5 a 8 el tema 2 y las 9 a 12 el tema 3. Cada tema corresponde a una de las tres clases de la intervención con simuladores.</p>
@@ -89,7 +115,7 @@ a{color:var(--acc)}
     <li>Si en algún criterio marca 1 o 2, escriba en observaciones qué cambiaría de la pregunta. Con 3 o 4 la observación es opcional.</li>
     <li>En las preguntas por pasos se califica la pregunta completa, con todos sus pasos.</li>
     <li>Califique la suficiencia de cada tema, mirando sus cuatro preguntas juntas. Si marca 1, 2 o 3, diga qué contenido del tema falta medir.</li>
-    <li>Marque el concepto general, escriba su nombre como firma y pulse "Enviar planilla". Después pase a la otra prueba con los botones "Planilla 1" y "Planilla 2" que están más abajo y quedan fijos arriba de la pantalla, o con el botón que aparece al final de cada planilla.</li>
+    <li>Marque el concepto general, escriba su nombre como firma y pulse "Enviar planilla". Al terminar el envío aparecen al final dos opciones: descargar el PDF de esa evaluación y pasar a la otra planilla. También puede cambiar de planilla en cualquier momento con los botones "Planilla 1" y "Planilla 2", que están debajo de los datos del juez y quedan fijos arriba de la pantalla.</li>
     <li>Plazo: jueves 12 de noviembre de 2026.</li>
   </ol>
   <p class="nota">Lo que marca se guarda en este navegador mientras llena la planilla. Si cierra la página y vuelve a abrirla en el mismo equipo, lo encuentra como lo dejó. Si envía otra vez la misma prueba, la hoja reemplaza su envío anterior.</p>
@@ -106,19 +132,13 @@ a{color:var(--acc)}
   </div>
 </section>
 
-<div class="selector" id="selector">
-  <p>Hay dos planillas. Pulse una para cambiar de prueba:</p>
-  <div class="tabs" role="tablist">
-    <button type="button" id="tab_decimo" class="on" data-p="decimo">Planilla 1. Décimo: razones trigonométricas<span class="est" id="est_decimo"></span></button>
-    <button type="button" id="tab_once" data-p="once">Planilla 2. Once: reglas de derivación<span class="est" id="est_once"></span></button>
-  </div>
-</div>
 <div id="planilla"></div>
 
 <section class="card">
   <p class="nota">Referencias. Escobar-Pérez, J. y Cuervo-Martínez, Á. (2008). Validez de contenido y juicio de expertos: una aproximación a su utilización. Avances en Medición, 6, 27-36. Icfes. (2019). Marco de referencia de la prueba de matemáticas Saber 11.°. Dirección de Evaluación, Icfes.</p>
 </section>
 </main>
+<div id="informe"></div>
 
 <script>
 /* Web app de Google Apps Script (el mismo que reciben las prepruebas) */
@@ -246,9 +266,10 @@ function pintar(){
   const otra = actual === "decimo" ? "once" : "decimo";
   h += '<p><button type="button" id="enviar">Enviar planilla de ' + (actual === "decimo" ? "décimo" : "once") + '</button></p>';
   h += '<p id="estado" class="estado' + (E.enviado ? " ok" : "") + '">' + (E.enviado ? "Esta planilla ya fue enviada (" + esc(E.enviado) + "). Si corrige algo y la envía otra vez, la hoja reemplaza el envío anterior." : "") + '</p>';
-  h += '<p><button type="button" class="sec" id="irOtra">Ir a la planilla ' + (otra === "decimo" ? "1 de décimo" : "2 de once") + '</button></p></section>';
+  h += '<div id="final"></div></section>';
   $("planilla").innerHTML = h;
   rotulos();
+  finalBloque();
   conectar();
   avisos();
 }
@@ -267,7 +288,6 @@ function conectar(){
   $("generales").addEventListener("input", ev => { E.generales = ev.target.value; guardar(); });
   $("firma").addEventListener("input", ev => { E.firma = ev.target.value; guardar(); });
   $("enviar").addEventListener("click", enviar);
-  $("irOtra").addEventListener("click", () => cambiar(actual === "decimo" ? "once" : "decimo"));
 }
 
 function avisos(){
@@ -339,9 +359,9 @@ async function enviar(){
       try{ const r = await jsonp({asignatura: ASIGNATURA, accion: "verificar", id}); ok = !!(r && r.ok && r.encontrado); }catch(e){}
     }
     if(!ok) throw new Error("la hoja no confirmó el registro");
-    E.enviado = new Date().toLocaleString("es-CO"); guardar(); rotulos();
+    E.enviado = new Date().toLocaleString("es-CO"); guardar(); rotulos(); finalBloque();
     st.className = "estado ok";
-    st.textContent = "Planilla recibida (" + E.enviado + "). Gracias. " + (estado.pruebas[actual === "decimo" ? "once" : "decimo"].enviado ? "Ya envió las dos planillas." : "Falta la planilla de la otra prueba: use la pestaña de arriba.");
+    st.textContent = "Planilla recibida (" + E.enviado + "). Gracias. " + (estado.pruebas[actual === "decimo" ? "once" : "decimo"].enviado ? "Ya envió las dos planillas." : "Falta la planilla de la otra prueba: elíjala abajo.");
   }catch(err){
     st.className = "estado mal";
     st.textContent = "No se pudo confirmar el envío (" + err.message + "). Lo que marcó sigue guardado en este navegador; revise la conexión e inténtelo otra vez.";
@@ -366,6 +386,39 @@ function datosJuez(){
   if(!estado.fecha){ estado.fecha = new Date().toLocaleDateString("es-CO"); $("fecha").value = estado.fecha; guardar(); }
 }
 
+function finalBloque(){
+  const caja = $("final"); if(!caja) return;
+  const E = estado.pruebas[actual], otra = actual === "decimo" ? "once" : "decimo", O = estado.pruebas[otra];
+  if(!E.enviado){ caja.innerHTML = ""; return; }
+  const nombre = k => k === "decimo" ? "planilla 1 de décimo" : "planilla 2 de once";
+  let h = '<div class="final"><h3>Evaluación enviada. ¿Qué desea hacer ahora?</h3>';
+  h += '<p>' + (O.enviado ? "Ya envió las dos planillas. Puede descargar el PDF de cada una." : "Le falta la " + nombre(otra) + ".") + '</p><div class="botones">';
+  h += '<button type="button" id="pdfActual">Descargar PDF de la ' + nombre(actual) + '</button>';
+  if(O.enviado) h += '<button type="button" id="pdfOtra">Descargar PDF de la ' + nombre(otra) + '</button>';
+  h += '<button type="button" class="sec" id="irOtra">' + (O.enviado ? "Revisar la " : "Pasar a la ") + nombre(otra) + '</button></div></div>';
+  caja.innerHTML = h;
+  $("pdfActual").addEventListener("click", () => pdf(actual));
+  if($("pdfOtra")) $("pdfOtra").addEventListener("click", () => pdf(otra));
+  $("irOtra").addEventListener("click", () => cambiar(otra));
+}
+function pdf(k){
+  const P = PRUEBAS[k], E = estado.pruebas[k];
+  let h = '<h1>Planilla de juicio de expertos</h1><p>' + esc(P.titulo) + '</p>';
+  h += '<p>Investigación: Los laboratorios virtuales como recurso tecnológico en el aula: el caso de la Institución Educativa Técnica Agropecuaria de Luruaco (IETAL). Investigador: Jorge Eduardo Royero Vergara, Doctorado en Educación, UTEL.</p>';
+  h += '<h2>Datos del juez</h2><table><tr><th>Nombre completo</th><td>' + esc(estado.juez) + '</td></tr><tr><th>Título más alto</th><td>' + esc(estado.titulo) + '</td></tr><tr><th>Cargo e institución</th><td>' + esc(estado.cargo) + '</td></tr><tr><th>Años de experiencia en matemáticas</th><td>' + esc(estado.anios) + '</td></tr><tr><th>Fecha de la evaluación</th><td>' + esc(estado.fecha) + '</td></tr><tr><th>Envío a la hoja</th><td>' + esc(E.enviado || "No enviada") + '</td></tr></table>';
+  h += '<h2>Claridad, coherencia y relevancia por pregunta (escala de 1 a 4)</h2><table><tr><th>Pregunta</th><th>Tema</th><th>Enunciado corto</th><th>Claridad</th><th>Coherencia</th><th>Relevancia</th><th>Observaciones</th></tr>';
+  P.preguntas.forEach((q, i) => { const e = E.preguntas[i]; h += '<tr><td>' + (i + 1) + '</td><td>' + (Math.floor(i / 4) + 1) + '</td><td>' + esc(q[0]) + '</td><td>' + (e.cl || "") + '</td><td>' + (e.co || "") + '</td><td>' + (e.re || "") + '</td><td>' + esc(e.obs) + '</td></tr>'; });
+  h += '</table><h2>Suficiencia por tema</h2><table><tr><th>Tema</th><th>Contenido</th><th>Preguntas</th><th>Suficiencia</th><th>Qué falta medir</th></tr>';
+  P.temas.forEach((t, j) => { const e = E.temas[j]; h += '<tr><td>' + (j + 1) + '</td><td>' + esc(t) + '</td><td>' + (4 * j + 1) + ', ' + (4 * j + 2) + ', ' + (4 * j + 3) + ' y ' + (4 * j + 4) + '</td><td>' + (e.suf || "") + '</td><td>' + esc(e.falta) + '</td></tr>'; });
+  h += '</table><h2>Concepto general</h2><p>' + esc(E.concepto) + '</p><h2>Observaciones generales</h2><p>' + (esc(E.generales) || "Ninguna.") + '</p>';
+  h += '<h2>Firma</h2><p>' + esc(E.firma) + '</p><p style="margin-top:10pt;font-size:8pt">Criterios y niveles adaptados de Escobar-Pérez y Cuervo-Martínez (2008, pp. 35-36).</p>';
+  $("informe").innerHTML = h;
+  const t = document.title, ap = (estado.juez || "juez").trim().split(/\s+/).slice(-2).join("_");
+  document.title = "Juicio_expertos_" + (k === "decimo" ? "decimo_trigonometria" : "once_derivadas") + "_" + ap;
+  const volver = () => { document.title = t; window.removeEventListener("afterprint", volver); };
+  window.addEventListener("afterprint", volver);
+  window.print();
+}
 function rotulos(){
   Object.keys(PRUEBAS).forEach(k => {
     const E = estado.pruebas[k];
